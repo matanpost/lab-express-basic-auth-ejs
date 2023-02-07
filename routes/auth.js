@@ -21,15 +21,26 @@ router.post("/signup", async(req, res, next) => {
       console.log(passwordHash)
       body.password = passwordHash;
   
-      try{
-         await User.create(body);
-         res.send(body);
+      try {
+        await User.create(body)
+        res.send(body)
+      } catch (error) {
+        if (error.code === 11000) {
+          console.log('Duplicate !')
+          res.render('auth/signup', {
+            errorMessage: 'Username already used !',
+            userData: req.body,
+          })
+        } else {
+          res.render('auth/signup', {
+            errorMessage: error,
+            userData: req.body,
+          })
+        }
       }
-      catch(error){
-          console.log("error in auth promise", error);
-      };
-  }
-})
+    }
+  })
+  
 
 // Get LOGIN page
 router.get("/login", (req, res, next) => {
@@ -37,28 +48,31 @@ router.get("/login", (req, res, next) => {
 })
 
 /* POST signup page */
-router.post("/login", async(req, res, next) => {
-    console.log('SESSION =====> ', req.session)
+router.post('/login', async (req, res) => {
     const body = req.body
   
     const userMatch = await User.find({ username: body.username })
-    console.log(userMatch)
+    // console.log(userMatch)
     if (userMatch.length) {
       // User found
       const user = userMatch[0]
   
       if (bcrypt.compareSync(body.password, user.passwordHash)) {
         // Correct password
-        console.log(user)
-        res.render('profile', { user })
+  
+        const tempUser = {
+          username: user.username,
+          //email: user.email,
+        }
+  
+        req.session.user = tempUser
+        res.redirect('/profile')
       } else {
         // Incorrect password
       }
     } else {
       // User not found
     }
-
-    
-})
+  })
 
 module.exports = router;
